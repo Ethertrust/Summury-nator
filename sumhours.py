@@ -189,6 +189,10 @@ class XmlReader:
             yield neighbor
 
     def dis(self, settings):
+        for neighbor in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
+            print(neighbor.tag, neighbor.attrib)
+
+
         for neighbor in self.root.iter('Строка'):
             #print(neighbor.attrib)
             if not neighbor.get('ДисциплинаДляРазделов', 0) == 0:
@@ -438,10 +442,16 @@ class Hours():
             self.settingsset = True
 
     def getplanopt(self, node):
-        if node.attrib['ОбразовательнаяПрограмма'] == 'подготовка магистров':
+        for child in list(node.iter()):
+            if child.tag == '{http://tempuri.org/dsMMISDB.xsd}Планы':
+                node = child
+        print(node.tag)
+        print(node.findall('{http://tempuri.org/dsMMISDB.xsd}Планы'))
+        print(node.findall('Планы'))
+        if node.get('ОбразовательнаяПрограмма', '') == 'подготовка магистров' or node.get('КодУровняОбразования', '') == '3':
             self.plan = 'mag'
         else:
-            self.plan = node.attrib['ОбразовательнаяПрограмма']
+            self.plan = node.get('ОбразовательнаяПрограмма', node.get('КодУровняОбразования', ''))
 
     def checkexcept(self, settings, node, exc):
         if exc in settings:
@@ -936,6 +946,9 @@ else:
     sys.exit("No PathToXMLFile is specified...")
 
 xml.maketree(settings.config['PathToXMLFile']['path'])
+#print(xml.root.tag)
+#print(xml.root.attrib)
+#xml.childs(xml.root[0])
 hours.getplanopt(xml.root[0])
 hours.appendexlist(settings.config)
 for dis in xml.discomp(settings.config):
