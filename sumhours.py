@@ -191,7 +191,47 @@ class XmlReader:
     def dis(self, settings):
         for neighbor in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
             print(neighbor.tag, neighbor.attrib)
+            if not neighbor.get('ДисциплинаДляРазделов', 0) == 0:
+                continue
+            if 'ФТД' in neighbor.get('ДисциплинаКод', ''):
+                print(neighbor.get('ДисциплинаКод', ''), ' ', 'ФТД')
+                continue
 
+            splits = neighbor.get('ДисциплинаКод', '').split('.')
+            if 'ДВ' in splits:
+                print(neighbor.attrib['Дис'])
+                print(neighbor.attrib['Дис'])
+                if int(splits[-1]) <= int(math.ceil(int(settings['st']['stpergr']) / int(settings['st']['stpersubgr']))):
+                    # for x in range(0, ):
+                    for sem in neighbor.iter('Сем'):
+                        # if int(sem.get('Ном', 0)) == 6 and int(sem.get('КП', 0)) > 0:
+                        #    print(neighbor.get('Дис', 0), ' <---Сем. ном: ', sem.get('Ном', 0))
+                        sem.set('DV', splits[-1])
+                        sem.set('Дис', neighbor.get('Дис', 0))
+                        sem.set('Компетенции', neighbor.get('Компетенции', ''))
+                        yield sem
+                    for kurs in neighbor.iter('Курс'):
+                        for ses in kurs.iter('Сессия'):
+                            ses.set('Ном', '.'.join([kurs.get('Ном', ''), ses.get('Ном', '')]))
+                            print(ses.get('Ном', ''))
+                            ses.set('DV', splits[-1])
+                            ses.set('Дис', neighbor.get('Дис', 0))
+                            ses.set('Компетенции', neighbor.get('Компетенции', ''))
+                            yield ses
+            else:
+                for sem in neighbor.iter('Сем'):
+                    # if int(sem.get('Ном', 0)) == 6 and int(sem.get('КП', 0)) > 0:
+                    #    print(neighbor.get('Дис', 0), ' <---Сем. ном: ', sem.get('Ном', 0))
+                    sem.set('Дис', neighbor.get('Дис', 0))
+                    sem.set('Компетенции', neighbor.get('Компетенции', ''))
+                    yield sem
+                for kurs in neighbor.iter('Курс'):
+                    for ses in kurs.iter('Сессия'):
+                        ses.set('Ном', '.'.join([kurs.get('Ном', ''), ses.get('Ном', '')]))
+                        print(ses.get('Ном', ''))
+                        ses.set('Дис', neighbor.get('Дис', 0))
+                        ses.set('Компетенции', neighbor.get('Компетенции', ''))
+                        yield ses
 
         for neighbor in self.root.iter('Строка'):
             #print(neighbor.attrib)
