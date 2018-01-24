@@ -10,7 +10,7 @@ target = Executable(
 
 setup(
     name="Sumhours",
-    version="1.0.0",
+    version="2.0.0",
     description="Simple Calculator",
     author="Shvedov Egor",
     executables=[target]

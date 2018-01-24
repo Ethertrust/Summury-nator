@@ -197,10 +197,35 @@ class XmlReader:
                 print(neighbor.get('ДисциплинаКод', ''), ' ', 'ФТД')
                 continue
 
+            for neighbor2 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
+                if neighbor2.get('КодОбъекта', 'err') == neighbor.get('Код', ''):
+                    neighbor.set('Ном', str((int(neighbor2.get('Курс', 0))-1)*2 + int(neighbor2.get('Семестр', 0))))
+                    neighbor.set('Дис', neighbor.get('Дисциплина', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '101':
+                        neighbor.set('Лек', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '103':
+                        neighbor.set('Пр', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '102':
+                        neighbor.set('Лаб', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '6':
+                        neighbor.set('КонтрРаб', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '5':
+                        neighbor.set('КР', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '4':
+                        neighbor.set('КП', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '11':
+                        neighbor.set('РГР', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '3':
+                        neighbor.set('ЗачО', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '2':
+                        neighbor.set('Зач', neighbor2.get('Количество', 0))
+                    if neighbor2.get('КодВидаРаботы', 0) == '1':
+                        neighbor.set('Экз', neighbor2.get('Количество', 0))
+
             splits = neighbor.get('ДисциплинаКод', '').split('.')
             if 'ДВ' in splits:
-                print(neighbor.attrib['Дис'])
-                print(neighbor.attrib['Дис'])
+                #print(neighbor.attrib['Дис'])
+                #print(neighbor.attrib['Дис'])
                 if int(splits[-1]) <= int(math.ceil(int(settings['st']['stpergr']) / int(settings['st']['stpersubgr']))):
                     # for x in range(0, ):
                     for sem in neighbor.iter('Сем'):
