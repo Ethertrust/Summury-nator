@@ -189,93 +189,159 @@ class XmlReader:
             yield neighbor
 
     def dis(self, settings):
-        for neighbor in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
-            print(neighbor.tag, neighbor.attrib)
-            if not neighbor.get('ДисциплинаДляРазделов', 0) == 0:
-                continue
-            if 'ФТД' in neighbor.get('ДисциплинаКод', ''):
-                print(neighbor.get('ДисциплинаКод', ''), ' ', 'ФТД')
-                continue
+        print(self.root.get('UserName', '1'), 2)
+        if self.root.get('UserName', '1') != '1':
+            for neighbor in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
+                #print(neighbor.tag, neighbor.attrib)
+                if not neighbor.get('ДисциплинаДляРазделов', 0) == 0:
+                    continue
+                if 'ФТД' in neighbor.get('ДисциплинаКод', ''):
+                    print(neighbor.get('ДисциплинаКод', ''), ' ', 'ФТД')
+                    continue
 
-            for neighbor2 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
-                if neighbor2.get('КодОбъекта', 'err') == neighbor.get('Код', ''):
-                    neighbor.set('Ном', str((int(neighbor2.get('Курс', 0))-1)*2 + int(neighbor2.get('Семестр', 0))))
-                    neighbor.set('Дис', neighbor.get('Дисциплина', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '101':
-                        neighbor.set('Лек', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '103':
-                        neighbor.set('Пр', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '102':
-                        neighbor.set('Лаб', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '6':
-                        neighbor.set('КонтрРаб', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '5':
-                        neighbor.set('КР', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '4':
-                        neighbor.set('КП', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '11':
-                        neighbor.set('РГР', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '3':
-                        neighbor.set('ЗачО', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '2':
-                        neighbor.set('Зач', neighbor2.get('Количество', 0))
-                    if neighbor2.get('КодВидаРаботы', 0) == '1':
-                        neighbor.set('Экз', neighbor2.get('Количество', 0))
+                for neighbor2 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
+                    if neighbor2.get('КодОбъекта', 'err') == neighbor.get('Код', ''):
+                        neighbor2.set('Ном', str((int(neighbor2.get('Курс', 0))-1)*2 + int(neighbor2.get('Семестр', 0))))
+                        neighbor2.set('Дис', neighbor.get('Дисциплина', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '101':
+                            neighbor2.set('Лек', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '103':
+                            neighbor2.set('Пр', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '102':
+                            neighbor2.set('Лаб', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '6':
+                            neighbor2.set('КонтрРаб', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '5':
+                            neighbor2.set('КР', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '4':
+                            neighbor2.set('КП', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '11':
+                            neighbor2.set('РГР', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '3':
+                            neighbor2.set('ЗачО', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '2':
+                            neighbor2.set('Зач', neighbor2.get('Количество', 0))
+                        if neighbor2.get('КодВидаРаботы', 0) == '1':
+                            neighbor2.set('Экз', neighbor2.get('Количество', 0))
 
-            splits = neighbor.get('ДисциплинаКод', '').split('.')
-            if 'ДВ' in splits:
-                #print(neighbor.attrib['Дис'])
-                #print(neighbor.attrib['Дис'])
-                if int(splits[-1]) <= int(math.ceil(int(settings['st']['stpergr']) / int(settings['st']['stpersubgr']))):
-                    # for x in range(0, ):
-                    for sem in neighbor.iter('Сем'):
-                        # if int(sem.get('Ном', 0)) == 6 and int(sem.get('КП', 0)) > 0:
-                        #    print(neighbor.get('Дис', 0), ' <---Сем. ном: ', sem.get('Ном', 0))
-                        sem.set('DV', splits[-1])
-                        sem.set('Дис', neighbor.get('Дис', 0))
-                        sem.set('Компетенции', neighbor.get('Компетенции', ''))
-                        yield sem
-                    for kurs in neighbor.iter('Курс'):
-                        for ses in kurs.iter('Сессия'):
-                            ses.set('Ном', '.'.join([kurs.get('Ном', ''), ses.get('Ном', '')]))
-                            print(ses.get('Ном', ''))
-                            ses.set('DV', splits[-1])
-                            ses.set('Дис', neighbor.get('Дис', 0))
-                            ses.set('Компетенции', neighbor.get('Компетенции', ''))
-                            yield ses
-            else:
-                for sem in neighbor.iter('Сем'):
-                    # if int(sem.get('Ном', 0)) == 6 and int(sem.get('КП', 0)) > 0:
-                    #    print(neighbor.get('Дис', 0), ' <---Сем. ном: ', sem.get('Ном', 0))
-                    sem.set('Дис', neighbor.get('Дис', 0))
-                    sem.set('Компетенции', neighbor.get('Компетенции', ''))
-                    yield sem
-                for kurs in neighbor.iter('Курс'):
-                    for ses in kurs.iter('Сессия'):
-                        ses.set('Ном', '.'.join([kurs.get('Ном', ''), ses.get('Ном', '')]))
-                        print(ses.get('Ном', ''))
-                        ses.set('Дис', neighbor.get('Дис', 0))
-                        ses.set('Компетенции', neighbor.get('Компетенции', ''))
-                        yield ses
+                        print(neighbor2.tag)
+                        neighbor2.tag = 'Сем'
 
-        for neighbor in self.root.iter('Строка'):
-            #print(neighbor.attrib)
-            if not neighbor.get('ДисциплинаДляРазделов', 0) == 0:
-                #print(neighbor.get('Дис', ''), ' ', neighbor.get('ДисциплинаДляРазделов', ''))
-                continue
-            if 'ФТД' in neighbor.get('НовИдДисциплины', ''):
-                #print(neighbor.get('НовИдДисциплины', ''), ' ', 'ФТД')
-                continue
+                        print(neighbor2.tag)
 
-            splits = neighbor.get('НовИдДисциплины', '').split('.')
-            if 'ДВ' in splits:
-                #print(neighbor.attrib['Дис'])
-                if int(splits[-1]) <= int(math.ceil(int(settings['st']['stpergr']) / int(settings['st']['stpersubgr']))):
-                    #for x in range(0, ):
+                        splits = neighbor.get('ДисциплинаКод', '').split('.')
+                        if 'ДВ' in splits:
+                            #print(neighbor.attrib['Дис'])
+                            #print(neighbor.attrib['Дис'])
+                            if int(splits[-1]) <= int(math.ceil(int(settings['st']['stpergr']) / int(settings['st']['stpersubgr']))):
+                                # for x in range(0, ):
+                                neighbor2.set('DV', splits[-1])
+                                neighbor2.set('Дис', neighbor2.get('Дис', 0))
+                                neighbor2.set('Компетенции', neighbor.get('Компетенции', ''))
+                                yield neighbor2
+                        else:
+                            neighbor2.set('Дис', neighbor2.get('Дис', 0))
+                            neighbor2.set('Компетенции', neighbor.get('Компетенции', ''))
+                            yield neighbor2
+#-----
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                #print(neighbor.attrib)
+                for nir in neighbor.iter('НИР'):
+                    for prpr in nir.iter('ПрочаяПрактика'):
+                        for sem in prpr.iter('Семестр'):
+                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
+                            sem.set('Наименование', prpr.get('Наименование', ''))
+                            sem.set('Компетенции', prpr.get('Компетенции', ''))
+                            yield sem
+
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for lpr in neighbor.iter('УчебПрактики'):
+                    for prpr in lpr.iter('ПрочаяПрактика'):
+                        for sem in prpr.iter('Семестр'):
+                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
+                            sem.set('Наименование', prpr.get('Наименование', ''))
+                            sem.set('Компетенции', prpr.get('Компетенции', ''))
+                            yield sem
+
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for prprs in neighbor.iter('ПрочиеПрактики'):
+                    for prpr in prprs.iter('ПрочаяПрактика'):
+                        for sem in prpr.iter('Семестр'):
+                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
+                            sem.set('Наименование', prpr.get('Наименование', ''))
+                            sem.set('Компетенции', prpr.get('Компетенции', ''))
+                            yield sem
+
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for dip in neighbor.iter('Диплом'):
+                    yield dip
+
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for vkr in neighbor.iter('ВКР'):
+                    yield vkr
+
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for dip in neighbor.iter('Диплом'):
+                    for gak in dip.iter('ГАК'):
+                        yield gak
+
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for vkr in neighbor.iter('ВКР'):
+                    for gak in vkr.iter('ГАК'):
+                        yield gak
+
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                ilist = []
+                for child in list(neighbor.iter()):
+                    if 'ИтоговыйЭкзамен' in child.tag:
+                        ilist.append(child)
+                for finex in ilist:
+                    #print(finex.tag)
+                    for finalex in finex.iter(finex.tag):
+                        #print(' ', finalex.tag)
+                        yield finalex
+#-----
+        else:
+            for neighbor in self.root.iter('Строка'):
+                #print(neighbor.attrib)
+                if not neighbor.get('ДисциплинаДляРазделов', 0) == 0:
+                    #print(neighbor.get('Дис', ''), ' ', neighbor.get('ДисциплинаДляРазделов', ''))
+                    continue
+                if 'ФТД' in neighbor.get('НовИдДисциплины', ''):
+                    #print(neighbor.get('НовИдДисциплины', ''), ' ', 'ФТД')
+                    continue
+
+                splits = neighbor.get('НовИдДисциплины', '').split('.')
+                if 'ДВ' in splits:
+                    #print(neighbor.attrib['Дис'])
+                    if int(splits[-1]) <= int(math.ceil(int(settings['st']['stpergr']) / int(settings['st']['stpersubgr']))):
+                        #for x in range(0, ):
+                        for sem in neighbor.iter('Сем'):
+                            #if int(sem.get('Ном', 0)) == 6 and int(sem.get('КП', 0)) > 0:
+                            #    print(neighbor.get('Дис', 0), ' <---Сем. ном: ', sem.get('Ном', 0))
+                            sem.set('DV', splits[-1])
+                            sem.set('Дис', neighbor.get('Дис', 0))
+                            sem.set('Компетенции', neighbor.get('Компетенции', ''))
+                            yield sem
+                        for kurs in neighbor.iter('Курс'):
+                            for ses in kurs.iter('Сессия'):
+                                ses.set('Ном', '.'.join([kurs.get('Ном', ''), ses.get('Ном', '')]))
+                                print(ses.get('Ном', ''))
+                                ses.set('DV', splits[-1])
+                                ses.set('Дис', neighbor.get('Дис', 0))
+                                ses.set('Компетенции', neighbor.get('Компетенции', ''))
+                                yield ses
+                else:
                     for sem in neighbor.iter('Сем'):
                         #if int(sem.get('Ном', 0)) == 6 and int(sem.get('КП', 0)) > 0:
                         #    print(neighbor.get('Дис', 0), ' <---Сем. ном: ', sem.get('Ном', 0))
-                        sem.set('DV', splits[-1])
                         sem.set('Дис', neighbor.get('Дис', 0))
                         sem.set('Компетенции', neighbor.get('Компетенции', ''))
                         yield sem
@@ -283,88 +349,73 @@ class XmlReader:
                         for ses in kurs.iter('Сессия'):
                             ses.set('Ном', '.'.join([kurs.get('Ном', ''), ses.get('Ном', '')]))
                             print(ses.get('Ном', ''))
-                            ses.set('DV', splits[-1])
                             ses.set('Дис', neighbor.get('Дис', 0))
                             ses.set('Компетенции', neighbor.get('Компетенции', ''))
                             yield ses
-            else:
-                for sem in neighbor.iter('Сем'):
-                    #if int(sem.get('Ном', 0)) == 6 and int(sem.get('КП', 0)) > 0:
-                    #    print(neighbor.get('Дис', 0), ' <---Сем. ном: ', sem.get('Ном', 0))
-                    sem.set('Дис', neighbor.get('Дис', 0))
-                    sem.set('Компетенции', neighbor.get('Компетенции', ''))
-                    yield sem
-                for kurs in neighbor.iter('Курс'):
-                    for ses in kurs.iter('Сессия'):
-                        ses.set('Ном', '.'.join([kurs.get('Ном', ''), ses.get('Ном', '')]))
-                        print(ses.get('Ном', ''))
-                        ses.set('Дис', neighbor.get('Дис', 0))
-                        ses.set('Компетенции', neighbor.get('Компетенции', ''))
-                        yield ses
 
-        for neighbor in self.root.iter('СпецВидыРаботНов'):
-            #print(neighbor.attrib)
-            for nir in neighbor.iter('НИР'):
-                for prpr in nir.iter('ПрочаяПрактика'):
-                    for sem in prpr.iter('Семестр'):
-                        sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
-                        sem.set('Наименование', prpr.get('Наименование', ''))
-                        sem.set('Компетенции', prpr.get('Компетенции', ''))
-                        yield sem
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                #print(neighbor.attrib)
+                for nir in neighbor.iter('НИР'):
+                    for prpr in nir.iter('ПрочаяПрактика'):
+                        for sem in prpr.iter('Семестр'):
+                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
+                            sem.set('Наименование', prpr.get('Наименование', ''))
+                            sem.set('Компетенции', prpr.get('Компетенции', ''))
+                            yield sem
 
-        for neighbor in self.root.iter('СпецВидыРаботНов'):
-            # print(neighbor.attrib)
-            for lpr in neighbor.iter('УчебПрактики'):
-                for prpr in lpr.iter('ПрочаяПрактика'):
-                    for sem in prpr.iter('Семестр'):
-                        sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
-                        sem.set('Наименование', prpr.get('Наименование', ''))
-                        sem.set('Компетенции', prpr.get('Компетенции', ''))
-                        yield sem
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for lpr in neighbor.iter('УчебПрактики'):
+                    for prpr in lpr.iter('ПрочаяПрактика'):
+                        for sem in prpr.iter('Семестр'):
+                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
+                            sem.set('Наименование', prpr.get('Наименование', ''))
+                            sem.set('Компетенции', prpr.get('Компетенции', ''))
+                            yield sem
 
-        for neighbor in self.root.iter('СпецВидыРаботНов'):
-            # print(neighbor.attrib)
-            for prprs in neighbor.iter('ПрочиеПрактики'):
-                for prpr in prprs.iter('ПрочаяПрактика'):
-                    for sem in prpr.iter('Семестр'):
-                        sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
-                        sem.set('Наименование', prpr.get('Наименование', ''))
-                        sem.set('Компетенции', prpr.get('Компетенции', ''))
-                        yield sem
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for prprs in neighbor.iter('ПрочиеПрактики'):
+                    for prpr in prprs.iter('ПрочаяПрактика'):
+                        for sem in prpr.iter('Семестр'):
+                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
+                            sem.set('Наименование', prpr.get('Наименование', ''))
+                            sem.set('Компетенции', prpr.get('Компетенции', ''))
+                            yield sem
 
-        for neighbor in self.root.iter('СпецВидыРаботНов'):
-            # print(neighbor.attrib)
-            for dip in neighbor.iter('Диплом'):
-                yield dip
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for dip in neighbor.iter('Диплом'):
+                    yield dip
 
-        for neighbor in self.root.iter('СпецВидыРаботНов'):
-            # print(neighbor.attrib)
-            for vkr in neighbor.iter('ВКР'):
-                yield vkr
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for vkr in neighbor.iter('ВКР'):
+                    yield vkr
 
-        for neighbor in self.root.iter('СпецВидыРаботНов'):
-            # print(neighbor.attrib)
-            for dip in neighbor.iter('Диплом'):
-                for gak in dip.iter('ГАК'):
-                    yield gak
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for dip in neighbor.iter('Диплом'):
+                    for gak in dip.iter('ГАК'):
+                        yield gak
 
-        for neighbor in self.root.iter('СпецВидыРаботНов'):
-            # print(neighbor.attrib)
-            for vkr in neighbor.iter('ВКР'):
-                for gak in vkr.iter('ГАК'):
-                    yield gak
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                for vkr in neighbor.iter('ВКР'):
+                    for gak in vkr.iter('ГАК'):
+                        yield gak
 
-        for neighbor in self.root.iter('СпецВидыРаботНов'):
-            # print(neighbor.attrib)
-            ilist = []
-            for child in list(neighbor.iter()):
-                if 'ИтоговыйЭкзамен' in child.tag:
-                    ilist.append(child)
-            for finex in ilist:
-                #print(finex.tag)
-                for finalex in finex.iter(finex.tag):
-                    #print(' ', finalex.tag)
-                    yield finalex
+            for neighbor in self.root.iter('СпецВидыРаботНов'):
+                # print(neighbor.attrib)
+                ilist = []
+                for child in list(neighbor.iter()):
+                    if 'ИтоговыйЭкзамен' in child.tag:
+                        ilist.append(child)
+                for finex in ilist:
+                    #print(finex.tag)
+                    for finalex in finex.iter(finex.tag):
+                        #print(' ', finalex.tag)
+                        yield finalex
 
     def checkedulevel(self, string):
         if self.root[0].attrib['ОбразовательнаяПрограмма'] == string:
@@ -532,6 +583,7 @@ class Hours():
             self.checkdis(settings, node)
 
     def checkdis(self, settings, node):
+        #print(node.get('Дис', ''), node.tag, node.attrib)
         if node.get('Дис', '').lower() in settings['DisExceptionsForSubg']:
             self.subgroups = settings['DisExceptionsForSubg'][node.get('Дис', '').lower()]
             #print('subgroups: ', self.subgroups)
