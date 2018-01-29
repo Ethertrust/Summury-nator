@@ -244,11 +244,17 @@ class XmlReader:
                             neighbor2.set('Компетенции', neighbor.get('Компетенции', ''))
                             yield neighbor2
 #-----
+            for dis in self.root.iter():
+                print(dis.tag, dis.get('Код', 1))
+                if dis.get('Код', 1) == '-200':
+                    print(dis.tag, dis.get('Код', 1))
+
             for sem in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыРазбиения'):
                 skip = False
-                if sem.get('КодПланыНовыеЧасы', 0) == '-201':
+                if sem.get('КодПланыНовыеЧасы', 0) == '-200':
                     print(sem.tag, sem.get('КодПланыНовыеЧасы', 0))
                 for dis1 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
+                    #print(dis1.tag, dis1.get('Код', 1), sem.get('КодПланыНовыеЧасы', 0))
                     if dis1.get('Код', 1) == '-200':
                         print(dis1.tag, dis1.get('Код', 1), sem.get('КодПланыНовыеЧасы', 0))
 
