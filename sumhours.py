@@ -246,7 +246,7 @@ class XmlReader:
 #-----
             for sem in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыРазбиения'):
                 skip = False
-                if sem.get('КодПланыНовыеЧасы', 0) == '-200':
+                if sem.get('КодПланыНовыеЧасы', 0) == '-201':
                     print(sem.tag, sem.get('КодПланыНовыеЧасы', 0))
                 for dis1 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
                     if dis1.get('Код', 1) == '-200':
