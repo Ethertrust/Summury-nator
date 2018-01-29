@@ -224,10 +224,10 @@ class XmlReader:
                         if neighbor2.get('КодВидаРаботы', 0) == '1':
                             neighbor2.set('Экз', neighbor2.get('Количество', 0))
 
-                        print(neighbor2.tag)
+                        #print(neighbor2.tag)
                         neighbor2.tag = 'Сем'
 
-                        print(neighbor2.tag)
+                        #print(neighbor2.tag)
 
                         splits = neighbor.get('ДисциплинаКод', '').split('.')
                         if 'ДВ' in splits:
@@ -246,69 +246,50 @@ class XmlReader:
 #-----
             for sem in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыРазбиения'):
                 skip = False
-                for dis1 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
+                if sem.get('КодПланыНовыеЧасы', 0) == '-200':
+                    print(sem.tag, sem.get('КодПланыНовыеЧасы', 0))
+                for dis1 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
+                    if dis1.get('Код', 1) == '-200':
+                        print(dis1.tag, dis1.get('Код', 1), sem.get('КодПланыНовыеЧасы', 0))
+
                     if dis1.get('Код', 1) == sem.get('КодПланыНовыеЧасы', 0):
                         #sem.set('Нед', dis1.get('Недель', 1))
+                        print(dis1.get('Код', 1), sem.get('КодПланыНовыеЧасы', 0))
                         for dis2 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
                             if dis2.get('ТипОбъекта', 1) == 6:
                                 skip = True
-                                break
-                        break
-                if skip:
-                    continue
-                for zet in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}Планы'):
-                    sem.set('ЗЕТвНеделе', zet.get('ЗЕТвНеделю', 0))
-                for dis1 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
-                    if dis1.get('Код', 1) == sem.get('КодПланыНовыеЧасы', 0):
-                        #sem.set('Нед', dis1.get('Недель', 1))
-                        for dis2 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
-                            if dis2.get('Код', 1) == dis1.get('КодОбъекта', 0):
-                                sem.set('Наименование', sem.get('Наименование', ''))
-                                sem.set('ПланЗЕТ', dis2.get('ЗЕТфакт', ''))
-                                break
-                        break
-                sem.set('Компетенции', sem.get('Компетенции', ''))
-                sem.set('ПланЧасовАуд', sem.get('Компетенции', ''))
-                sem.set('Нед', sem.get('Недель', 1))
-                if sem.get('Нед', '0') == '0':
-                    sem.set('Нед', 1)
-                print(sem.get('Нед', 0))
-                sem.tag = 'Семестр'
-                yield sem
-
-            for neighbor in self.root.iter('СпецВидыРаботНов'):
-                # print(neighbor.attrib)
-                for dip in neighbor.iter('Диплом'):
-                    yield dip
-
-            for neighbor in self.root.iter('СпецВидыРаботНов'):
-                # print(neighbor.attrib)
-                for vkr in neighbor.iter('ВКР'):
-                    yield vkr
-
-            for neighbor in self.root.iter('СпецВидыРаботНов'):
-                # print(neighbor.attrib)
-                for dip in neighbor.iter('Диплом'):
-                    for gak in dip.iter('ГАК'):
-                        yield gak
-
-            for neighbor in self.root.iter('СпецВидыРаботНов'):
-                # print(neighbor.attrib)
-                for vkr in neighbor.iter('ВКР'):
-                    for gak in vkr.iter('ГАК'):
-                        yield gak
-
-            for neighbor in self.root.iter('СпецВидыРаботНов'):
-                # print(neighbor.attrib)
-                ilist = []
-                for child in list(neighbor.iter()):
-                    if 'ИтоговыйЭкзамен' in child.tag:
-                        ilist.append(child)
-                for finex in ilist:
-                    #print(finex.tag)
-                    for finalex in finex.iter(finex.tag):
-                        #print(' ', finalex.tag)
-                        yield finalex
+                                print(skip)
+                        #        break
+                       # if skip:
+                        #    break
+                if not skip:
+                    for zet in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}Планы'):
+                        sem.set('ЗЕТвНеделе', zet.get('ЗЕТвНеделю', 0))
+                    for dis1 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
+                        found = False
+                        if dis1.get('Код', 1) == sem.get('КодПланыНовыеЧасы', 0):
+                            #sem.set('Нед', dis1.get('Недель', 1))
+                            for dis2 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
+                                if dis2.get('Код', 1) == dis1.get('КодОбъекта', 0):
+                                    sem.set('Наименование', sem.get('Наименование', ''))
+                                    sem.set('ПланЗЕТ', dis2.get('ЗЕТфакт', ''))
+                                    found = True
+                            #        break
+                           # if found:
+                            #    break
+                    sem.set('Компетенции', sem.get('Компетенции', ''))
+                    sem.set('ПланЧасовАуд', sem.get('Компетенции', ''))
+                    sem.set('Нед', sem.get('Недель', 1))
+                    if sem.get('Нед', '0') == '0':
+                        sem.set('Нед', 1)
+                    #print(sem.get('Нед', 0))
+                    sem.tag = 'Семестр'
+                    yield sem
+                else:
+                    sem.set('Часов', sem.get('НормативНаСтуд', ''))
+                    sem.tag='ГАК2'
+                    print(sem.tag, sem.attrib)
+                    yield sem
 #-----
         else:
             for neighbor in self.root.iter('Строка'):
@@ -563,9 +544,9 @@ class Hours():
         for child in list(node.iter()):
             if child.tag == '{http://tempuri.org/dsMMISDB.xsd}Планы':
                 node = child
-        print(node.tag)
-        print(node.findall('{http://tempuri.org/dsMMISDB.xsd}Планы'))
-        print(node.findall('Планы'))
+        #print(node.tag)
+        #print(node.findall('{http://tempuri.org/dsMMISDB.xsd}Планы'))
+        #print(node.findall('Планы'))
         if node.get('ОбразовательнаяПрограмма', '') == 'подготовка магистров' or node.get('КодУровняОбразования', '') == '3':
             self.plan = 'mag'
         else:
@@ -613,7 +594,7 @@ class Hours():
             self.lastsem = semn
         #print(self.lastsem)
         #print(semn)
-        #print(node.attrib)
+        #print(node.tag, node.attrib)
         if semn:
             for comp, value in self.compdict.items():
                 if value['Индекс'] in node.get('Компетенции', '').split(', '):
@@ -693,14 +674,14 @@ class Hours():
                         #print('Прикладнуха')
                         self.semsh[semn]['Практ'] += int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', math.ceil(int(self.stnumber) / 15)) * float(settings['TimeNormals']['pr'])
                         self.disaud[node.get('Дис', '')][semn]['Практ'] = int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', math.ceil(int(self.stnumber) / 15)) * float(settings['TimeNormals']['pr'])
-                        if int(node.get('Пр', 0)) > 0:
-                            print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
-                            print('Практ: ', int(node.get('Пр', 0)), ' ',
-                                  self.calcmult(node, settings, 'Практ', math.ceil(int(self.stnumber) / 15)), ' ',
-                                 int(node.get('Пр', 0)) * self.calcmult(node, settings,
-                                                                        'Практ', math.ceil(int(self.stnumber) / 15)) * float(
-                                      settings['TimeNormals']['pr']),
-                                  'Итого: ', self.semsh[semn]['Практ'])
+                        #if int(node.get('Пр', 0)) > 0:
+                        #    print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
+                        #    print('Практ: ', int(node.get('Пр', 0)), ' ',
+                        #          self.calcmult(node, settings, 'Практ', math.ceil(int(self.stnumber) / 15)), ' ',
+                        #         int(node.get('Пр', 0)) * self.calcmult(node, settings,
+                        #                                                'Практ', math.ceil(int(self.stnumber) / 15)) * float(
+                        #              settings['TimeNormals']['pr']),
+                        #          'Итого: ', self.semsh[semn]['Практ'])
                     else:
                         self.semsh[semn]['Лек'] += round((int(node.get('Лек', 0))) * float(settings['TimeNormals']['lec']), 2)
                         self.disaud[node.get('Дис', '')][semn]['Лек'] = round((int(node.get('Лек', 0))) * float(settings['TimeNormals']['lec']), 2)
@@ -716,12 +697,12 @@ class Hours():
                         #print('Было так: ', self.groups)
                         self.semsh[semn]['Практ'] += int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', self.groups) * float(settings['TimeNormals']['pr'])
                         self.disaud[node.get('Дис', '')][semn]['Практ'] = int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', self.groups) * float(settings['TimeNormals']['pr'])
-                        if int(node.get('Пр', 0)) > 0:
-                            print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
-                            print('Практ: ', int(node.get('Пр', 0)), ' ', self.calcmult(node, settings, 'Практ', self.groups), ' ',
-                                 int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', self.groups) * float(
-                                     settings['TimeNormals']['pr']),
-                                  'Итого: ', self.semsh[semn]['Практ'])
+                        #if int(node.get('Пр', 0)) > 0:
+                            #print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
+                            #print('Практ: ', int(node.get('Пр', 0)), ' ', self.calcmult(node, settings, 'Практ', self.groups), ' ',
+                            #     int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', self.groups) * float(
+                            #         settings['TimeNormals']['pr']),
+                            #      'Итого: ', self.semsh[semn]['Практ'])
                     self.semsh[semn]['Лек'] = round(self.semsh[semn]['Лек'], 2)
                     self.semsh[semn]['Лек. конс'] = round(self.semsh[semn]['Лек. конс'], 2)
                     self.semsh[semn]['Практ'] = round(self.semsh[semn]['Практ'], 2)
@@ -982,7 +963,7 @@ class Hours():
                             self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЧасовАуд', ''))
                             #print(node.get('Ном', 0), 'НормативНаПодгр: ', float(node.get('ПланЧасовАуд', '')))
                         else:
-                            print(node.get('ЗЕТвНеделе', 0),int(self.groups),float(node.get('Нед', 1)))
+                            #print(node.get('ЗЕТвНеделе', 0),int(self.groups),float(node.get('Нед', 1)))
                             self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
                                 node.get('ЗЕТвНеделе', 0)) * opt3 * int(self.groups) / float(node.get('Нед', 1))
                             #print(node.get('Ном', 0), 'НормативНаПодгр: ',
@@ -998,6 +979,20 @@ class Hours():
                         #          self.groups))
 
                         #int(key.get('Нед', 0)) * opt4 * int(self.groups)
+
+                if node.tag == 'ГАК2':
+                    if node.get('КодВидаРаботы', 0) == 52:
+                        self.semsh[semn]['Рук. ВКР'] += (int(node.get('Часов', 0))) * int(self.stnumber)
+                    if node.get('КодВидаРаботы', 0) == 53:
+                        self.semsh[semn]['Рук. ВКР'] += (int(node.get('Часов', 0))) * int(self.stnumber)
+                    if node.get('КодВидаРаботы', 0) == 56 or node.get(
+                            'КодВидаРаботы', 0) == 57:
+                        self.semsh[semn]['ГАК'] += int(self.stnumber) * float(node.get('Часов', 0))
+                    print(node.tag, node.attrib)
+                    if 'ИтоговыйЭкзамен' in node.tag:
+                        self.semsh[semn]['ГЭК'] += int(self.stnumber) * float(node.get('ПредседательЧасов', 0))
+                        for member in node.iter('ЧленГЭК'):
+                            self.semsh[semn]['ГЭК'] += int(self.stnumber) * float(member.get('Часов', 0))
 
                 for ruk in node.iter('Руководство'):
 
