@@ -244,35 +244,37 @@ class XmlReader:
                             neighbor2.set('Компетенции', neighbor.get('Компетенции', ''))
                             yield neighbor2
 #-----
-            for neighbor in self.root.iter('СпецВидыРаботНов'):
-                #print(neighbor.attrib)
-                for nir in neighbor.iter('НИР'):
-                    for prpr in nir.iter('ПрочаяПрактика'):
-                        for sem in prpr.iter('Семестр'):
-                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
-                            sem.set('Наименование', prpr.get('Наименование', ''))
-                            sem.set('Компетенции', prpr.get('Компетенции', ''))
-                            yield sem
-
-            for neighbor in self.root.iter('СпецВидыРаботНов'):
-                # print(neighbor.attrib)
-                for lpr in neighbor.iter('УчебПрактики'):
-                    for prpr in lpr.iter('ПрочаяПрактика'):
-                        for sem in prpr.iter('Семестр'):
-                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
-                            sem.set('Наименование', prpr.get('Наименование', ''))
-                            sem.set('Компетенции', prpr.get('Компетенции', ''))
-                            yield sem
-
-            for neighbor in self.root.iter('СпецВидыРаботНов'):
-                # print(neighbor.attrib)
-                for prprs in neighbor.iter('ПрочиеПрактики'):
-                    for prpr in prprs.iter('ПрочаяПрактика'):
-                        for sem in prpr.iter('Семестр'):
-                            sem.set('ЗЕТвНеделе', prpr.get('ЗЕТвНеделе', 0))
-                            sem.set('Наименование', prpr.get('Наименование', ''))
-                            sem.set('Компетенции', prpr.get('Компетенции', ''))
-                            yield sem
+            for sem in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыРазбиения'):
+                skip = False
+                for dis1 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
+                    if dis1.get('Код', 1) == sem.get('КодПланыНовыеЧасы', 0):
+                        #sem.set('Нед', dis1.get('Недель', 1))
+                        for dis2 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
+                            if dis2.get('ТипОбъекта', 1) == 6:
+                                skip = True
+                                break
+                        break
+                if skip:
+                    continue
+                for zet in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}Планы'):
+                    sem.set('ЗЕТвНеделе', zet.get('ЗЕТвНеделю', 0))
+                for dis1 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
+                    if dis1.get('Код', 1) == sem.get('КодПланыНовыеЧасы', 0):
+                        #sem.set('Нед', dis1.get('Недель', 1))
+                        for dis2 in self.root.findall('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
+                            if dis2.get('Код', 1) == dis1.get('КодОбъекта', 0):
+                                sem.set('Наименование', sem.get('Наименование', ''))
+                                sem.set('ПланЗЕТ', dis2.get('ЗЕТфакт', ''))
+                                break
+                        break
+                sem.set('Компетенции', sem.get('Компетенции', ''))
+                sem.set('ПланЧасовАуд', sem.get('Компетенции', ''))
+                sem.set('Нед', sem.get('Недель', 1))
+                if sem.get('Нед', '0') == '0':
+                    sem.set('Нед', 1)
+                print(sem.get('Нед', 0))
+                sem.tag = 'Семестр'
+                yield sem
 
             for neighbor in self.root.iter('СпецВидыРаботНов'):
                 # print(neighbor.attrib)
@@ -935,6 +937,10 @@ class Hours():
                     self.semsh[semn]['Рук. маг'] = round(self.semsh[semn]['Рук. маг'], 2)
 
                 if node.tag == 'Семестр':
+                    opt1 = float(node.get('НормативНаСтуд', 0))
+                    opt2 = float(node.get('НормативНаСтудВНед', 0))
+                    opt3 = float(node.get('НормативНаПодгр', 0))
+                    opt4 = float(node.get('НормативНаПодгрВНед', 0))
                     for key in node.iter('Кафедра'):
                         #print(node.attrib)
                         #print(key.attrib)
@@ -942,54 +948,56 @@ class Hours():
                         opt2 = float(key.get('НормативНаСтудВНед', 0))
                         opt3 = float(key.get('НормативНаПодгр', 0))
                         opt4 = float(key.get('НормативНаПодгрВНед', 0))
-                        if not opt1 == 0:
+                        node.set('Нед', key.get('Нед', 1))
+                    if not opt1 == 0:
+                        self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
+                            node.get('ЗЕТвНеделе', 0)) * opt1 * int(self.stnumber) / float(node.get('Нед', 1))
+                        #print(node.get('Ном', 0), 'НормативНаСтуд: ',
+                        #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt1 * int(
+                        #          self.stnumber) / float(key.get('Нед', 1)))
+
+                        #opt1 * int(self.stnumber)
+                    if not opt2 == 0:
+                        #print(int(key.get('Нед', 0)), ' ', opt2,' ', int(self.stnumer))
+                        self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
+                            node.get('ЗЕТвНеделе', 0)) * opt2 * int(self.stnumber)
+                        #print(node.get('Ном', 0), 'НормативНаСтудВНед: ',
+                        #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt2 * int(
+                        #          self.stnumber))
+
+                        #int(key.get('Нед', 0)) * opt2 * int(self.stnumber)
+                    if not opt3 == 0:
+                        if not node.get('ПланЧасовАуд', '') == '':
+                            if node.get('Наименование', '') in self.disaud:
+                            #    print(self.disaud[node.get('Наименование', '')])
+                                self.semsh[semn]['Лек'] -= float(
+                                    self.disaud[node.get('Наименование', '')][semn]['Лек'])
+                                self.semsh[semn]['Лек. конс'] -= float(
+                                    self.disaud[node.get('Наименование', '')][semn]['Лек. конс'])
+                                self.semsh[semn]['Практ'] -= float(
+                                    self.disaud[node.get('Наименование', '')][semn]['Практ'])
+                                self.semsh[semn]['Лаб'] -= float(
+                                    self.disaud[node.get('Наименование', '')][semn]['Лаб'])
+                                self.disaud[node.get('Наименование', '')][semn]['Вычесть'] = True
+                            self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЧасовАуд', ''))
+                            #print(node.get('Ном', 0), 'НормативНаПодгр: ', float(node.get('ПланЧасовАуд', '')))
+                        else:
+                            print(node.get('ЗЕТвНеделе', 0),int(self.groups),float(node.get('Нед', 1)))
                             self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
-                                node.get('ЗЕТвНеделе', 0)) * opt1 * int(self.stnumber) / float(key.get('Нед', 1))
-                            #print(node.get('Ном', 0), 'НормативНаСтуд: ',
-                            #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt1 * int(
-                            #          self.stnumber) / float(key.get('Нед', 1)))
+                                node.get('ЗЕТвНеделе', 0)) * opt3 * int(self.groups) / float(node.get('Нед', 1))
+                            #print(node.get('Ном', 0), 'НормативНаПодгр: ',
+                            #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt3 * int(
+                            #          self.groups) / float(key.get('Нед', 1)))
 
-                            #opt1 * int(self.stnumber)
-                        if not opt2 == 0:
-                            #print(int(key.get('Нед', 0)), ' ', opt2,' ', int(self.stnumer))
-                            self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
-                                node.get('ЗЕТвНеделе', 0)) * opt2 * int(self.stnumber)
-                            #print(node.get('Ном', 0), 'НормативНаСтудВНед: ',
-                            #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt2 * int(
-                            #          self.stnumber))
+                        #opt3 * int(self.groups)
+                    if not opt4 == 0:
+                        self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
+                            node.get('ЗЕТвНеделе', 0)) * opt4 * int(self.groups)
+                        #print(node.get('Ном', 0), 'НормативНаПодгрВНед: ',
+                        #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt4 * int(
+                        #          self.groups))
 
-                            #int(key.get('Нед', 0)) * opt2 * int(self.stnumber)
-                        if not opt3 == 0:
-                            if not node.get('ПланЧасовАуд', '') == '':
-                                if node.get('Наименование', '') in self.disaud:
-                                #    print(self.disaud[node.get('Наименование', '')])
-                                    self.semsh[semn]['Лек'] -= float(
-                                        self.disaud[node.get('Наименование', '')][semn]['Лек'])
-                                    self.semsh[semn]['Лек. конс'] -= float(
-                                        self.disaud[node.get('Наименование', '')][semn]['Лек. конс'])
-                                    self.semsh[semn]['Практ'] -= float(
-                                        self.disaud[node.get('Наименование', '')][semn]['Практ'])
-                                    self.semsh[semn]['Лаб'] -= float(
-                                        self.disaud[node.get('Наименование', '')][semn]['Лаб'])
-                                    self.disaud[node.get('Наименование', '')][semn]['Вычесть'] = True
-                                self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЧасовАуд', ''))
-                                #print(node.get('Ном', 0), 'НормативНаПодгр: ', float(node.get('ПланЧасовАуд', '')))
-                            else:
-                                self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
-                                    node.get('ЗЕТвНеделе', 0)) * opt3 * int(self.groups) / float(key.get('Нед', 1))
-                                #print(node.get('Ном', 0), 'НормативНаПодгр: ',
-                                #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt3 * int(
-                                #          self.groups) / float(key.get('Нед', 1)))
-
-                            #opt3 * int(self.groups)
-                        if not opt4 == 0:
-                            self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
-                                node.get('ЗЕТвНеделе', 0)) * opt4 * int(self.groups)
-                            #print(node.get('Ном', 0), 'НормативНаПодгрВНед: ',
-                            #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt4 * int(
-                            #          self.groups))
-
-                            #int(key.get('Нед', 0)) * opt4 * int(self.groups)
+                        #int(key.get('Нед', 0)) * opt4 * int(self.groups)
 
                 for ruk in node.iter('Руководство'):
 
