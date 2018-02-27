@@ -8,7 +8,7 @@ import sys
 import copy
 
 class XlsWriter:
-    def writetoxls(self, data, semdata, file, inputfile, exlist, settings, zaoch):
+    def writetoxls(self, data, semdata, file, inputfile, exlist, settings, zaoch, prof, workbook):
         style0 = xlwt.easyxf('font: name Arial, color-index black, bold on; align: vert centre, horiz left; borders: left thin, top thin, bottom thin, right thin',
                              num_format_str='#,##0.00')
         style1 = xlwt.easyxf('font: name Times New Roman, color-index black, bold on; align: vert centre, horiz center; borders: top thin, bottom thin, right thin',
@@ -23,8 +23,8 @@ class XlsWriter:
             num_format_str='#,##0.00')
         style6 = xlwt.easyxf('font: name Arial, color-index black, bold on; align: vert centre, horiz center; borders: left thin, bottom thin, right thin',
             num_format_str='#,##0.00')
-        workbook = xlwt.Workbook()
-        worksheet = workbook.add_sheet('Нагрузка')
+        #workbook = xlwt.Workbook()
+        worksheet = workbook.add_sheet(prof['Название'][0:31])
         #worksheet.col(0).width_mismatch = True
         worksheet.col(0).width = 256 * 25
         semdata2 = collections.OrderedDict(sorted(semdata.items()))
@@ -187,19 +187,22 @@ class XmlReader:
                 continue
             yield neighbor
 
-    def dis(self, settings):
+    def dis(self, settings, prof):
         print(self.root.get('UserName', '1'), 2)
         if self.root.get('UserName', '1') != '1':
             for neighbor in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
                 #print(neighbor.tag, neighbor.attrib)
                 if not neighbor.get('ДисциплинаДляРазделов', 0) == 0:
                     continue
-                if 'ФТД' in neighbor.get('ДисциплинаКод', ''):
-                    print(neighbor.get('ДисциплинаКод', ''), ' ', 'ФТД')
+                if neighbor.get('КодООП', 'Err') != prof['Код'] and neighbor.get('КодООП', 'Err') != prof['Родитель']:
+                    #print(neighbor.get('КодООП', 'Err'))
                     continue
+                #if 'ФТД' in neighbor.get('ДисциплинаКод', ''):
+                #    print(neighbor.get('ДисциплинаКод', ''), ' ', 'ФТД')
+                #    continue
 
                 for neighbor2 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
-                    if neighbor2.get('КодОбъекта', 'err') == neighbor.get('Код', ''):
+                    if neighbor2.get('КодОбъекта', 'err') == neighbor.get('Код', '') and neighbor2.get('КодТипаЧасов', '') == "1":
                         neighbor2.set('Ном', str((int(neighbor2.get('Курс', 0))-1)*2 + int(neighbor2.get('Семестр', 0))))
                         neighbor2.set('Дис', neighbor.get('Дисциплина', 0))
                         if neighbor2.get('КодВидаРаботы', 0) == '101':
@@ -223,26 +226,38 @@ class XmlReader:
                         if neighbor2.get('КодВидаРаботы', 0) == '1':
                             neighbor2.set('Экз', neighbor2.get('Количество', 0))
 
-                        cneighbor2 = copy.deepcopy(neighbor2)
-                        #print(neighbor2.tag)
-                        cneighbor2.tag = 'Сем'
+                        if neighbor.get('ТипОбъекта', 0) == '2':
+                            cneighbor2 = copy.deepcopy(neighbor2)
+                            #print(neighbor2.tag)
+                            cneighbor2.tag = 'Сем'
 
-                        #print(neighbor2.tag)
+                            #print(neighbor2.tag)
 
-                        splits = neighbor.get('ДисциплинаКод', '').split('.')
-                        if 'ДВ' in splits:
-                            #print(neighbor.attrib['Дис'])
-                            #print(neighbor.attrib['Дис'])
-                            if int(splits[-1]) <= int(math.ceil(int(settings['st']['stpergr']) / int(settings['st']['stpersubgr']))):
-                                # for x in range(0, ):
-                                cneighbor2.set('DV', splits[-1])
+                            splits = neighbor.get('ДисциплинаКод', '').split('.')
+                            #print(neighbor.get('ДисциплинаКод', ''), splits[-1], int(splits[-1]))
+                            if 'ДВ' in splits:
+                                #print(neighbor.attrib['Дис'])
+                                #print(neighbor.attrib['Дис'])
+                                # int(settings['st']['stpersubgr'])
+                                #print(int(settings['st']['stpergr']), (int(settings['st']['stpersubgr']) * 2) - 1)
+                                if int(settings['st']['stpergr']) < (int(settings['st']['stpersubgr']) * 2) - 1:
+                                    #print(int(settings['st']['stpergr']), (int(settings['st']['stpersubgr']) * 2) - 1)
+                                    if int(splits[-1]) == 1:
+                                        cneighbor2.set('Дис', cneighbor2.get('Дис', 0))
+                                        cneighbor2.set('Компетенции', neighbor.get('Компетенции', ''))
+                                        yield cneighbor2
+                                else:
+                                    if int(splits[-1]) <= int(math.ceil((int(settings['st']['stpergr'])) / (int(settings['st']['stpersubgr'])))):
+                                        #print(int(splits[-1]))
+                                        # for x in range(0, ):
+                                        cneighbor2.set('DV', int(splits[-1]))
+                                        cneighbor2.set('Дис', cneighbor2.get('Дис', 0))
+                                        cneighbor2.set('Компетенции', neighbor.get('Компетенции', ''))
+                                        yield cneighbor2
+                            else:
                                 cneighbor2.set('Дис', cneighbor2.get('Дис', 0))
                                 cneighbor2.set('Компетенции', neighbor.get('Компетенции', ''))
                                 yield cneighbor2
-                        else:
-                            cneighbor2.set('Дис', cneighbor2.get('Дис', 0))
-                            cneighbor2.set('Компетенции', neighbor.get('Компетенции', ''))
-                            yield cneighbor2
 #-----
             for dis2 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
                 for dis1 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
@@ -253,6 +268,7 @@ class XmlReader:
                 for sem in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыРазбиения'):
                     if sem.get('КодПланыНовыеЧасы', 0) == dis1.get('Код', 1):
                         sem.set('КодВидаРаботы', dis1.get('КодВидаРаботы', 1))
+                        sem.set('ТипКомиссии', dis1.get('ТипКомиссии', 1))
                         sem.set('Ном', str((int(dis1.get('Курс', 0)) - 1) * 2 + int(dis1.get('Семестр', 0))))
                         #print(sem.get('Ном', 1))
                         sem.set('ТипОбъекта', dis1.get('ТипОбъекта', 1))
@@ -268,7 +284,7 @@ class XmlReader:
                         found = False
                         if dis1.get('Код', 1) == sem.get('КодПланыНовыеЧасы', 0):
                             sem.set('КодВидаРаботы', dis1.get('КодВидаРаботы', 1))
-                            print(sem.get('КодВидаРаботы', 1))
+                            #print(sem.get('КодВидаРаботы', 1))
                             for dis2 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыСтроки'):
                                 if dis2.get('Код', 1) == dis1.get('КодОбъекта', 0):
                                     sem.set('Наименование', sem.get('Наименование', ''))
@@ -279,18 +295,23 @@ class XmlReader:
                             #    break
                     sem.set('Компетенции', sem.get('Компетенции', ''))
                     sem.set('ПланЧасовАуд', sem.get('Компетенции', ''))
-                    sem.set('Нед', sem.get('Недель', 1))
+                    sem.set('Нед', sem.get('Недель', 0))
+                    #print('Недель', sem.get('Недель', 0))
                     if sem.get('Нед', '0') == '0':
                         sem.set('Нед', 1)
                     #print(sem.get('Нед', 0))
                     csem = copy.deepcopy(sem)
-                    csem.tag = 'Семестр'
+                    csem.set('Семестр', 'Семестр')
                     #print(csem.tag, csem.attrib)
                     yield csem
                 else:
                     sem.set('Часов', sem.get('НормативНаСтуд', ''))
                     csem = copy.deepcopy(sem)
-                    csem.tag='ГАК2'
+                    csem.set('ГАК', 'ГАК2')
+                    if csem.get('ТипКомиссии', 0) == '1':
+                        csem.set('Тип', 'ГАК')
+                    if csem.get('ТипКомиссии', 0) == '2':
+                        csem.set('Тип', 'ГЭК')
                     #print(csem.tag, csem.attrib)
                     yield csem
 #-----
@@ -677,14 +698,14 @@ class Hours():
                         #print('Прикладнуха')
                         self.semsh[semn]['Практ'] += int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', math.ceil(int(self.stnumber) / 15)) * float(settings['TimeNormals']['pr'])
                         self.disaud[node.get('Дис', '')][semn]['Практ'] = int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', math.ceil(int(self.stnumber) / 15)) * float(settings['TimeNormals']['pr'])
-                        #if int(node.get('Пр', 0)) > 0:
-                        #    print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
-                        #    print('Практ: ', int(node.get('Пр', 0)), ' ',
-                        #          self.calcmult(node, settings, 'Практ', math.ceil(int(self.stnumber) / 15)), ' ',
-                        #         int(node.get('Пр', 0)) * self.calcmult(node, settings,
-                        #                                                'Практ', math.ceil(int(self.stnumber) / 15)) * float(
-                        #              settings['TimeNormals']['pr']),
-                        #          'Итого: ', self.semsh[semn]['Практ'])
+                    #    if semn == 6 and int(node.get('Пр', 0)) > 0:
+                    #        print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
+                    #        print('Практ: ', int(node.get('Пр', 0)), ' ',
+                    #              self.calcmult(node, settings, 'Практ', math.ceil(int(self.stnumber) / 15)), ' ',
+                    #             int(node.get('Пр', 0)) * self.calcmult(node, settings,
+                    #                                                    'Практ', math.ceil(int(self.stnumber) / 15)) * float(
+                    #                  settings['TimeNormals']['pr']),
+                    #              'Итого: ', self.semsh[semn]['Практ'])
                     else:
                         self.semsh[semn]['Лек'] += round((int(node.get('Лек', 0))) * float(settings['TimeNormals']['lec']), 2)
                         self.disaud[node.get('Дис', '')][semn]['Лек'] = round((int(node.get('Лек', 0))) * float(settings['TimeNormals']['lec']), 2)
@@ -700,18 +721,18 @@ class Hours():
                         #print('Было так: ', self.groups)
                         self.semsh[semn]['Практ'] += int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', self.groups) * float(settings['TimeNormals']['pr'])
                         self.disaud[node.get('Дис', '')][semn]['Практ'] = int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', self.groups) * float(settings['TimeNormals']['pr'])
-                        #if int(node.get('Пр', 0)) > 0:
-                            #print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
-                            #print('Практ: ', int(node.get('Пр', 0)), ' ', self.calcmult(node, settings, 'Практ', self.groups), ' ',
-                            #     int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', self.groups) * float(
-                            #         settings['TimeNormals']['pr']),
-                            #      'Итого: ', self.semsh[semn]['Практ'])
+                    #    if semn == 6 and int(node.get('Пр', 0)) > 0:
+                    #        print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
+                    #        print('Практ: ', int(node.get('Пр', 0)), ' ', self.calcmult(node, settings, 'Практ', self.groups), ' ',
+                    #             int(node.get('Пр', 0)) * self.calcmult(node, settings, 'Практ', self.groups) * float(
+                    #                 settings['TimeNormals']['pr']),
+                    #              'Итого: ', self.semsh[semn]['Практ'])
                     self.semsh[semn]['Лек'] = round(self.semsh[semn]['Лек'], 2)
                     self.semsh[semn]['Лек. конс'] = round(self.semsh[semn]['Лек. конс'], 2)
                     self.semsh[semn]['Практ'] = round(self.semsh[semn]['Практ'], 2)
-                        #if semn == 12 and int(node.get('Пр', 0)) * int(self.groups) * float(settings['TimeNormals']['pr']) > 0:
-                        #    print('sem', semn, 'sum: ', self.semsh[semn]['Практ'], ' || ',
-                        #          int(node.get('Пр', 0)) * int(self.groups) * float(settings['TimeNormals']['pr']))
+                    #if semn == 6 and int(node.get('Пр', 0)) * int(self.groups) * float(settings['TimeNormals']['pr']) > 0:
+                    #    print('sem', semn, 'sum: ', self.semsh[semn]['Практ'], ' || ',
+                    #          int(node.get('Пр', 0)) * int(self.groups) * float(settings['TimeNormals']['pr']))
                     #self.summ += int(node.get('Лаб', 0))
                     #print(int(node.get('Лаб', 0)), ' ', int(self.subgroups), ' self.sum: ', self.summ)
                     #print(int(self.subgroups))
@@ -723,7 +744,7 @@ class Hours():
                             #print('Было так: ', self.groups)
                             self.semsh[semn]['Лаб'] += int(node.get('Лаб', 0)) * self.calcmult(node, settings, 'Лаб')
                             self.disaud[node.get('Дис', '')][semn]['Лаб'] = int(node.get('Лаб', 0)) * self.calcmult(node, settings, 'Лаб')
-                            #if semn == 8 and int(node.get('Лаб', 0)) > 0:
+                            #if semn == 1 and int(node.get('Лаб', 0)) > 0:
                             #    print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
                             #    print('Лаб: ', int(node.get('Лаб', 0)), ' ', self.calcmult(node, settings, 'Лаб'), ' ',
                             #          int(node.get('Лаб', 0)) * self.calcmult(node, settings, 'Лаб'),
@@ -731,15 +752,16 @@ class Hours():
                     else:
                         self.semsh[semn]['Лаб'] += int(node.get('Лаб', 0)) * int(self.subgroups)
                         self.disaud[node.get('Дис', '')][semn]['Лаб'] = int(node.get('Лаб', 0)) * int(self.subgroups)
-                        #if semn == 8 and int(node.get('Лаб', 0)) > 0:
+                        #if semn == 1 and int(node.get('Лаб', 0)) > 0:
                         #    print(node.get('Дис', 0), ' <---Сем. ном: ', semn)
                         #    print('Лаб: ', int(node.get('Лаб', 0)), ' ', int(self.subgroups), ' ',
                         #          int(node.get('Лаб', 0)) * int(self.subgroups),
                         #          'Итого: ', self.semsh[semn]['Лаб'])
                     self.semsh[semn]['Лаб'] = round(self.semsh[semn]['Лаб'], 2)
+                    #print('Итого: ', self.semsh[semn]['Лаб'])
 
                     if node.get('Дис', '') in self.disaud and self.disaud[node.get('Дис', '')][semn]['Вычесть']:
-                        #print(self.disaud[node.get('Наименование', '')])
+                        print(self.disaud[node.get('Наименование', '')])
                         self.semsh[semn]['Лек'] -= float(self.disaud[node.get('Дис', '')][semn]['Лек'])
                         self.semsh[semn]['Лек. конс'] -= float(self.disaud[node.get('Дис', '')][semn]['Лек. конс'])
                         self.semsh[semn]['Практ'] -= float(self.disaud[node.get('Дис', '')][semn]['Практ'])
@@ -810,17 +832,24 @@ class Hours():
 
                     self.checkexcept(settings, node, 'Диф.  зач')
                     if 'DV' in node.attrib:
-                        if int(node.attrib['DV']) == math.ceil(int(settings['st']['stpergr']) / int(settings['st']['stpersubgr'])):
+                        if int(node.attrib['DV']) == math.ceil(((int(settings['st']['stpergr'])) - int(settings['st']['stpersubgr'])) / (int(settings['st']['stpersubgr']) - 1)):
+                            #print('DV', int(node.attrib['DV']), math.ceil(((int(settings['st']['stpergr'])) - int(settings['st']['stpersubgr'])) / (int(settings['st']['stpersubgr']) - 1)))
                             if (self.stnumber % int(settings['st']['stpersubgr'])) == 0:
                                 self.semsh[semn]['Диф. зач'] += int(node.get('ЗачО', 0)) * int(
                                     settings['st']['stpersubgr']) * float(settings['TimeNormals']['difcredit'])
+                                #print(int(1, node.get('ЗачО', 0)) * int(
+                                #    settings['st']['stpersubgr']) * float(settings['TimeNormals']['difcredit']))
                             else:
                                 self.semsh[semn]['Диф. зач'] += int(node.get('ЗачО', 0)) * (self.stnumber % int(settings['st']['stpersubgr'])) * float(settings['TimeNormals']['difcredit'])
+                    #           print(2, int(node.get('ЗачО', 0)) * (self.stnumber % int(settings['st']['stpersubgr'])) * float(settings['TimeNormals']['difcredit']))
                         else:
                             self.semsh[semn]['Диф. зач'] += int(node.get('ЗачО', 0)) * int(settings['st']['stpersubgr']) * float(settings['TimeNormals']['difcredit'])
+                            #print(3, int(node.get('ЗачО', 0)) * int(settings['st']['stpersubgr']) * float(settings['TimeNormals']['difcredit']))
                     else:
                         self.semsh[semn]['Диф. зач'] += int(node.get('ЗачО', 0)) * int(self.stnumber) * float(
                         settings['TimeNormals']['difcredit'])
+                        #print(int(node.get('ЗачО', 0)) * int(self.stnumber) * float(
+                        #settings['TimeNormals']['difcredit']))
                     self.semsh[semn]['Диф. зач'] = round(self.semsh[semn]['Диф. зач'], 2)
                     #if int(node.get('ЗачО', 0)) * int(self.stnumber) * float(settings['TimeNormals']['difcredit']) > 0:
                     #    print('sem', semn, 'sum: ', self.semsh[semn]['Диф. зач'], ' || ',
@@ -920,7 +949,7 @@ class Hours():
                     self.semsh[semn]['Рук. маг'] += float(settings['TimeNormals']['mag'])/2 * int(self.stnumber)
                     self.semsh[semn]['Рук. маг'] = round(self.semsh[semn]['Рук. маг'], 2)
 
-                if node.tag == 'Семестр':
+                if node.tag == 'Семестр' or node.get('Семестр', '0') == 'Семестр':
                     opt1 = float(node.get('НормативНаСтуд', 0))
                     opt2 = float(node.get('НормативНаСтудВНед', 0))
                     opt3 = float(node.get('НормативНаПодгр', 0))
@@ -934,24 +963,23 @@ class Hours():
                         opt3 = float(key.get('НормативНаПодгр', 0))
                         opt4 = float(key.get('НормативНаПодгрВНед', 0))
                         node.set('Нед', key.get('Нед', 1))
-                    print(opt1, opt2, opt3, opt4, semn)
+                    #print(opt1, opt2, opt3, opt4, semn)
                     if not opt1 == 0:
                         #print('Im here 1')
-                        self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
-                            node.get('ЗЕТвНеделе', 0)) * opt1 * int(self.stnumber) / float(node.get('Нед', 1))
-                        #print(node.get('Ном', 0), 'НормативНаСтуд: ',
-                        #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt1 * int(
-                        #          self.stnumber) / float(key.get('Нед', 1)))
+                        self.semsh[semn]['Практики и НИР'] += opt1 * int(self.stnumber)
+                        #print(node.get('Ном', 0), 'НормативНаСтуд: ', opt1, int(
+                        #          self.stnumber), float(node.get('Нед', 1)),
+                        #      opt1 * int(
+                        #          self.stnumber))
 
                         #opt1 * int(self.stnumber)
                     if not opt2 == 0:
                         #print('Im here 2')
                         #print(int(key.get('Нед', 0)), ' ', opt2,' ', int(self.stnumer))
-                        self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
-                            node.get('ЗЕТвНеделе', 0)) * opt2 * int(self.stnumber)
-                        #print(node.get('Ном', 0), 'НормативНаСтудВНед: ',
-                        #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt2 * int(
-                        #          self.stnumber))
+                        self.semsh[semn]['Практики и НИР'] += opt2 * int(self.stnumber) * float(node.get('Нед', 1))
+                        #print(node.get('Ном', 0), 'НормативНаСтудВНед: ', opt2, int(self.stnumber), float(node.get('Нед', 1)),
+                        #      opt2 * int(
+                        #          self.stnumber) * float(node.get('Нед', 1)))
 
                         #int(key.get('Нед', 0)) * opt2 * int(self.stnumber)
                     if not opt3 == 0:
@@ -972,40 +1000,43 @@ class Hours():
                             #print(node.get('Ном', 0), 'НормативНаПодгр: ', float(node.get('ПланЧасовАуд', '')))
                         else:
                             #print(node.get('ЗЕТвНеделе', 0),int(self.groups),float(node.get('Нед', 1)))
-                            self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
-                                node.get('ЗЕТвНеделе', 0)) * opt3 * int(self.groups) / float(node.get('Нед', 1))
-                            #print(node.get('Ном', 0), 'НормативНаПодгр: ',
-                            #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt3 * int(
-                            #          self.groups) / float(key.get('Нед', 1)))
+                            self.semsh[semn]['Практики и НИР'] += opt3 * int(self.groups)
+                            #print(node.get('Ном', 0), 'НормативНаПодгр: ', opt3, int(
+                            #          self.groups),
+                            #      opt3 * int(
+                            #          self.groups))
 
                         #opt3 * int(self.groups)
                     if not opt4 == 0:
                         #print('Im here 4', float(node.get('ПланЗЕТ', 0)))
-                        self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЗЕТ', 0)) / float(
-                            node.get('ЗЕТвНеделе', 0)) * opt4 * int(self.groups)
-                        #print(node.get('Ном', 0), 'НормативНаПодгрВНед: ',
-                        #      float(node.get('ПланЗЕТ', 0)) / float(node.get('ЗЕТвНеделе', 0)) * opt4 * int(
-                        #          self.groups))
+                        self.semsh[semn]['Практики и НИР'] += opt4 * int(self.groups) * float(node.get('Нед', 1))
+                        #print(node.get('Ном', 0), 'НормативНаПодгрВНед: ', opt4, int(
+                        #          self.groups), float(node.get('Нед', 1)),
+                        #      opt4 * int(
+                        #          self.groups),float(node.get('Нед', 1)))
 
                         #int(key.get('Нед', 0)) * opt4 * int(self.groups)
 
-                if node.tag == 'ГАК2':
-                    print('im here gak2')
-                    if node.get('КодВидаРаботы', 0) == '52':
-                        print('im here 52', (int(node.get('Часов', 0))))
-                        self.semsh[semn]['Рук. ВКР'] += (int(node.get('Часов', 0))) * int(self.stnumber)
-                    if node.get('КодВидаРаботы', 0) == '53':
-                        print('im here 53', (int(node.get('Часов', 0))))
-                        self.semsh[semn]['Рук. ВКР'] += (int(node.get('Часов', 0))) * int(self.stnumber)
-                    if node.get('КодВидаРаботы', 0) == '56' or node.get(
-                            'КодВидаРаботы', 0) == '57':
-                        print('im here 56 57', (float(node.get('Часов', 0))))
-                        self.semsh[semn]['ГАК'] += int(self.stnumber) * float(node.get('Часов', 0))
+                if node.get('ГАК', '0') == 'ГАК2':
+                    #print('im here gak2')
+                    if node.get('Тип', '0') == 'ГАК':
+                        if node.get('КодВидаРаботы', 0) == '52':
+                            self.semsh[semn]['Рук. ВКР'] += (int(node.get('Часов', 0))) * int(self.stnumber)
+                            #print('im here 52 Рук. ВКР', int(self.stnumber), (int(node.get('Часов', 0))), self.semsh[semn]['Рук. ВКР'])
+                        if node.get('КодВидаРаботы', 0) == '53':
+                            self.semsh[semn]['Рук. ВКР'] += (int(node.get('Часов', 0))) * int(self.stnumber)
+                            #print('im here 53 Рук. ВКР', int(self.stnumber), (int(node.get('Часов', 0))), self.semsh[semn]['Рук. ВКР'])
+                        if node.get('КодВидаРаботы', 0) == '56' or node.get(
+                                'КодВидаРаботы', 0) == '57':
+                            self.semsh[semn]['ГАК'] += int(self.stnumber) * float(node.get('Часов', 0))
+                            #print('im here 56 57 ГАК', int(self.stnumber), (float(node.get('Часов', 0))), self.semsh[semn]['ГАК'])
                     #print(node.tag, node.attrib)
-                    if 'ИтоговыйЭкзамен' in node.tag:
-                        self.semsh[semn]['ГЭК'] += int(self.stnumber) * float(node.get('ПредседательЧасов', 0))
-                        for member in node.iter('ЧленГЭК'):
-                            self.semsh[semn]['ГЭК'] += int(self.stnumber) * float(member.get('Часов', 0))
+                    if node.get('Тип', '0') == 'ГЭК':
+                        if node.get('КодВидаРаботы', 0) == '56' or node.get(
+                                'КодВидаРаботы', 0) == '57':
+                            self.semsh[semn]['ГЭК'] += int(self.stnumber) * float(node.get('Часов', 0))
+                            #print('im here 56 57 ГЭК', int(self.stnumber), (float(node.get('Часов', 0))),
+                            #      self.semsh[semn]['ГЭК'])
 
                 for ruk in node.iter('Руководство'):
 
@@ -1046,7 +1077,6 @@ class Hours():
                     self.hours = self.hours + value2
 
 
-hours = Hours()
 settings = Settings()
 settings.readsettings()
 #settings.printvalues()
@@ -1079,118 +1109,142 @@ else:
     sys.exit("No PathToXMLFile is specified...")
 
 xml.maketree(settings.config['PathToXMLFile']['path'])
+
 #print(xml.root.tag)
 #print(xml.root.attrib)
 #xml.childs(xml.root[0])
-hours.getplanopt(xml.root[0])
-hours.appendexlist(settings.config)
-for dis in xml.discomp(settings.config):
-    hours.competenceslist(dis)
-#for el in hours.compdict.items():
-#    print(el)
-for dis in xml.dis(settings.config):
-    hours.sum(settings.config, dis)
-#for el in hours.compdict.items():
-#    print(el)
-    #print(dis.tag, ' ', dis.attrib['Ном'], ' ', dis.keys())
-#print('Hours: ', hours.hours)
-#print('Semsh: ', hours.semsh)
-#xml.childs(xml.root[0][6])
-if settings.config.has_section('PathToResultFile'):
-    if settings.config['PathToResultFile'].get('path', '') == '':
-        path = 'result.xls'
+prof = {}
+proflist = []
+profnumber = 0
+for oop in xml.root.iter('{http://tempuri.org/dsMMISDB.xsd}ООП'):
+    if oop.get('Код', '2') in proflist:
+        continue
+    prof[profnumber] = {'Код': oop.get('Код', '0'),
+                        'Родитель': oop.get('КодРодительскогоООП', 'Нет'),
+                        'Название': oop.get('Название', '2')}
+    profnumber += 1
+    proflist.append(oop.get('Код', '2'))
+    #print(prof, proflist)
+if profnumber > 1:
+    prof.pop(0)
+#print(prof, proflist)
+workbook = xlwt.Workbook()
+for profitemkey, profitemvalue in prof.items():
+    print(profitemvalue)
+    hours = {}
+    print(hours)
+    hours = Hours()
+    hours.semsh = {}
+    hours.getplanopt(xml.root[0])
+    hours.appendexlist(settings.config)
+    for dis in xml.discomp(settings.config):
+        hours.competenceslist(dis)
+    #for el in hours.compdict.items():
+    #    print(el)
+
+    for dis in xml.dis(settings.config, profitemvalue):
+        hours.sum(settings.config, dis)
+    #for el in hours.compdict.items():
+    #    print(el)
+        #print(dis.tag, ' ', dis.attrib['Ном'], ' ', dis.keys())
+    #print('Hours: ', hours.hours)
+    #print('Semsh: ', hours.semsh)
+    #xml.childs(xml.root[0][6])
+    if settings.config.has_section('PathToResultFile'):
+        if settings.config['PathToResultFile'].get('path', '') == '':
+            path = 'result.xls'
+        else:
+            path = settings.config['PathToResultFile'].get('path', 'result.xls')
     else:
+        settings.config['PathToResultFile']['path'] = 'result.xls'
+        settings.writesettings()
         path = settings.config['PathToResultFile'].get('path', 'result.xls')
-else:
-    settings.config['PathToResultFile']['path'] = 'result.xls'
-    settings.writesettings()
-    path = settings.config['PathToResultFile'].get('path', 'result.xls')
 
-finalsum = {'hours': 0,
-            'Рук. маг': 0,
-            'Лек': 0,
-            'Лек. конс': 0,
-            'Практ': 0,
-            'Лаб': 0,
-            'КонтрРаб': 0,
-            'КурсРаб': 0,
-            'КурсПр': 0,
-            'РГР': 0,
-            'Диф. зач': 0,
-            'Зач': 0,
-            'Экз': 0,
-            'Экз. конс': 0,
-            'ГЭК': 0,
-            'ГАК': 0,
-            'Рук. ВКР': 0,
-            'Практики и НИР': 0
-            }
-#print(hours.semsh)
-for sem, value in hours.semsh.items():
-    #print(sem, '', value)
-    for el, value in value.items():
-        finalsum[el] += value
-        finalsum[el] = round(finalsum[el], 2)
-#print(path)
-#if path.endswith('.txt'):
-#    with open(path, 'w', encoding='utf-8-sig') as fp:
-#        fp.write('Hours: ')
-#        json.dump(round(hours.hours, 2), fp, sort_keys=True, indent=4, ensure_ascii=False)
-#        fp.write('\nSumm: ')
-#        json.dump(finalsum, fp, sort_keys=True, indent=4, ensure_ascii=False)
-#        fp.write('\nSemsh: ')
-#        json.dump(hours.semsh, fp, sort_keys=True, indent=4, ensure_ascii=False)
-
-if not(path.endswith('.xls')) and not path.endswith('.txt'):
-    filename, file_extension = os.path.splitext(path)
-    #print(file_extension)
-    if not file_extension == '':
-        path = str.replace(path, file_extension, '.xls')
-    else:
-        path += '.xls'
+    finalsum = {'hours': 0,
+                'Рук. маг': 0,
+                'Лек': 0,
+                'Лек. конс': 0,
+                'Практ': 0,
+                'Лаб': 0,
+                'КонтрРаб': 0,
+                'КурсРаб': 0,
+                'КурсПр': 0,
+                'РГР': 0,
+                'Диф. зач': 0,
+                'Зач': 0,
+                'Экз': 0,
+                'Экз. конс': 0,
+                'ГЭК': 0,
+                'ГАК': 0,
+                'Рук. ВКР': 0,
+                'Практики и НИР': 0
+                }
+    #print(hours.semsh)
+    for sem, value in hours.semsh.items():
+        #print(sem, '', value)
+        for el, value in value.items():
+            finalsum[el] += value
+            finalsum[el] = round(finalsum[el], 2)
     #print(path)
-print(hours.semsh)
-if path.lower().endswith('.xls') or path.lower().endswith('.xlsx'):
-    xlswriter = XlsWriter()
-    if not os.path.isdir(os.path.dirname(path)):
-        path = str(os.path.dirname(settings.config['PathToXMLFile']['path'])) + '\\' + str(os.path.basename(path))
-    xlswriter.writetoxls(finalsum, hours.semsh, path, os.path.splitext(settings.config['PathToXMLFile']['path'])[0].split('\\')[-1], hours.exlist, settings.config, xml.checkeduform('заочная'))
+    #if path.endswith('.txt'):
+    #    with open(path, 'w', encoding='utf-8-sig') as fp:
+    #        fp.write('Hours: ')
+    #        json.dump(round(hours.hours, 2), fp, sort_keys=True, indent=4, ensure_ascii=False)
+    #        fp.write('\nSumm: ')
+    #        json.dump(finalsum, fp, sort_keys=True, indent=4, ensure_ascii=False)
+    #        fp.write('\nSemsh: ')
+    #        json.dump(hours.semsh, fp, sort_keys=True, indent=4, ensure_ascii=False)
 
-if not path.endswith('.txt'):
-    filename, file_extension = os.path.splitext(path)
-    #print(file_extension)
-    if not file_extension == '':
-        path = str.replace(path, file_extension, '.txt')
-    else:
-        path += '.txt'
-    #print(path)
-if path.lower().endswith('.txt'):
-    with open(path, 'w', encoding='utf-8-sig') as fp:
-        missingcomp = True
-        for key in collections.OrderedDict(sorted(hours.compdict.items())):
-            if not hours.compdict[key]['Матрица']:
-                if missingcomp:
-                    fp.write('Пустые компетенции:\n')
-                    fp.write(hours.compdict[key]['Индекс'])
-                    missingcomp = False
-                    continue
-                fp.write('; ' + hours.compdict[key]['Индекс'])
-        if not missingcomp:
-            fp.write('\n\n')
-        #fp.write('\n')
+    if not(path.endswith('.xls')) and not path.endswith('.txt'):
+        filename, file_extension = os.path.splitext(path)
+        #print(file_extension)
+        if not file_extension == '':
+            path = str.replace(path, file_extension, '.xls')
+        else:
+            path += '.xls'
+        #print(path)
+    #print(hours.semsh)
+    if path.lower().endswith('.xls') or path.lower().endswith('.xlsx'):
+        xlswriter = XlsWriter()
+        if not os.path.isdir(os.path.dirname(path)):
+            path = str(os.path.dirname(settings.config['PathToXMLFile']['path'])) + '\\' + str(os.path.basename(path))
+        xlswriter.writetoxls(finalsum, hours.semsh, path, os.path.splitext(settings.config['PathToXMLFile']['path'])[0].split('\\')[-1], hours.exlist, settings.config, xml.checkeduform('заочная'), profitemvalue, workbook)
 
-        for key in collections.OrderedDict(sorted(hours.compdict.items())):
-            fp.write('Компетенция: ' + hours.compdict[key]['Индекс'] + '\nСодержание: ' + hours.compdict[key]['Содержание'] + '\n')
-            for semn in collections.OrderedDict(sorted(hours.compdict[key]['Матрица'].items())):
-                fp.write('Семестр ' + str(semn) + ': ' + '; '.join(hours.compdict[key]['Матрица'][semn]) + '\n')
-            fp.write('\n')
+    #if not path.endswith('.txt'):
+    #    filename, file_extension = os.path.splitext(path)
+    #    #print(file_extension)
+    #    if not file_extension == '':
+    #        path = str.replace(path, file_extension, '.txt')
+    #    else:
+    #        path += '.txt'
+    #    #print(path)
+    #if path.lower().endswith('.txt'):
+    #    with open(path, 'w', encoding='utf-8-sig') as fp:
+    #        missingcomp = True
+    #        for key in collections.OrderedDict(sorted(hours.compdict.items())):
+    #            if not hours.compdict[key]['Матрица']:
+    #                if missingcomp:
+    #                    fp.write('Пустые компетенции:\n')
+    #                    fp.write(hours.compdict[key]['Индекс'])
+    #                    missingcomp = False
+    #                    continue
+    #                fp.write('; ' + hours.compdict[key]['Индекс'])
+    #        if not missingcomp:
+    #            fp.write('\n\n')
+    #        #fp.write('\n')
 
-        if len(hours.diswithoutcomp) > 0:
-            fp.write('Дисциплины без компетенций:\n')
-            for el in hours.diswithoutcomp:
-                fp.write('   ' + el + '\n')
+    #        for key in collections.OrderedDict(sorted(hours.compdict.items())):
+    #            fp.write('Компетенция: ' + hours.compdict[key]['Индекс'] + '\nСодержание: ' + hours.compdict[key]['Содержание'] + '\n')
+    #            for semn in collections.OrderedDict(sorted(hours.compdict[key]['Матрица'].items())):
+    #                fp.write('Семестр ' + str(semn) + ': ' + '; '.join(hours.compdict[key]['Матрица'][semn]) + '\n')
+    #            fp.write('\n')
 
-#for child in xml.root[0][6]:
-#    xml.findchilds(child)
+    #        if len(hours.diswithoutcomp) > 0:
+    #            fp.write('Дисциплины без компетенций:\n')
+    #            for el in hours.diswithoutcomp:
+    #                fp.write('   ' + el + '\n')
+
+    #for child in xml.root[0][6]:
+    #    xml.findchilds(child)
 
 
