@@ -1,11 +1,16 @@
 import sys
 from cx_Freeze import setup, Executable
 
+includes = []
+excludes = []
+packages = []
+path = sys.path
+
 target = Executable(
     script = "sumhours.py",
     base = 'Win32GUI',
     targetName = "Sumhours.exe",
-    icon = "C:\\Python34\\Scripts\\xmlparsesum\\plus.ico"
+    icon = "C:\\plus_21081.ico"
     )
 
 setup(

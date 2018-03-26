@@ -205,6 +205,7 @@ class XmlReader:
                     if neighbor2.get('КодОбъекта', 'err') == neighbor.get('Код', '') and neighbor2.get('КодТипаЧасов', '') == "1":
                         neighbor2.set('Ном', str((int(neighbor2.get('Курс', 0))-1)*2 + int(neighbor2.get('Семестр', 0))))
                         neighbor2.set('Дис', neighbor.get('Дисциплина', 0))
+                        neighbor2.set('КодООП', neighbor.get('КодООП','Err'))
                         if neighbor2.get('КодВидаРаботы', 0) == '101':
                             neighbor2.set('Лек', neighbor2.get('Количество', 0))
                         if neighbor2.get('КодВидаРаботы', 0) == '103':
@@ -263,6 +264,7 @@ class XmlReader:
                 for dis1 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
                     if dis2.get('Код', 0) == dis1.get('КодОбъекта', 1):
                         dis1.set('ТипОбъекта', dis2.get('ТипОбъекта', 1))
+                        dis1.set('КодООП', dis2.get('КодООП', 'Err'))
                     #print(dis2.get('ТипОбъекта', 1), dis1.get('ТипОбъекта', 1))
             for dis1 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
                 for sem in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыРазбиения'):
@@ -270,11 +272,15 @@ class XmlReader:
                         sem.set('КодВидаРаботы', dis1.get('КодВидаРаботы', 1))
                         sem.set('ТипКомиссии', dis1.get('ТипКомиссии', 1))
                         sem.set('Ном', str((int(dis1.get('Курс', 0)) - 1) * 2 + int(dis1.get('Семестр', 0))))
+                        sem.set('КодООП', dis1.get('КодООП', 'Err'))
                         #print(sem.get('Ном', 1))
                         sem.set('ТипОбъекта', dis1.get('ТипОбъекта', 1))
                         #print(sem.get('ТипОбъекта', 1))
                     #print(sem.get('ТипОбъекта', 1), dis1.get('ТипОбъекта', 1))
             for sem in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыРазбиения'):
+                if sem.get('КодООП', 'Err') != prof['Код'] and sem.get('КодООП', 'Err') != prof['Родитель']:
+                    #print(neighbor.get('КодООП', 'Err'))
+                    continue
                 #print(sem.get('ТипОбъекта', 0))
                 if not sem.get('ТипОбъекта', 0) == '6':
                     #print('im here')
@@ -975,7 +981,7 @@ class Hours():
                         #opt1 * int(self.stnumber)
                     if not opt2 == 0:
                         #print('Im here 2')
-                        #print(int(key.get('Нед', 0)), ' ', opt2,' ', int(self.stnumer))
+                        #print(int(node.get('Нед', 0)), ' ', opt2,' ', int(self.stnumber))
                         self.semsh[semn]['Практики и НИР'] += opt2 * int(self.stnumber) * float(node.get('Нед', 1))
                         #print(node.get('Ном', 0), 'НормативНаСтудВНед: ', opt2, int(self.stnumber), float(node.get('Нед', 1)),
                         #      opt2 * int(
@@ -986,7 +992,7 @@ class Hours():
                         #print('Im here 3')
                         if not node.get('ПланЧасовАуд', '') == '':
                             if node.get('Наименование', '') in self.disaud:
-                            #    print(self.disaud[node.get('Наименование', '')])
+                                #print(self.disaud[node.get('Наименование', '')])
                                 self.semsh[semn]['Лек'] -= float(
                                     self.disaud[node.get('Наименование', '')][semn]['Лек'])
                                 self.semsh[semn]['Лек. конс'] -= float(
