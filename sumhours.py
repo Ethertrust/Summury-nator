@@ -265,6 +265,7 @@ class XmlReader:
                     if dis2.get('Код', 0) == dis1.get('КодОбъекта', 1):
                         dis1.set('ТипОбъекта', dis2.get('ТипОбъекта', 1))
                         dis1.set('КодООП', dis2.get('КодООП', 'Err'))
+                        dis1.set('Дис', dis2.get('Дисциплина', 0))
                     #print(dis2.get('ТипОбъекта', 1), dis1.get('ТипОбъекта', 1))
             for dis1 in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыНовыеЧасы'):
                 for sem in self.root.iter('{http://tempuri.org/dsMMISDB.xsd}ПланыРазбиения'):
@@ -273,6 +274,7 @@ class XmlReader:
                         sem.set('ТипКомиссии', dis1.get('ТипКомиссии', 1))
                         sem.set('Ном', str((int(dis1.get('Курс', 0)) - 1) * 2 + int(dis1.get('Семестр', 0))))
                         sem.set('КодООП', dis1.get('КодООП', 'Err'))
+                        sem.set('Дис', dis1.get('Дис', 0))
                         #print(sem.get('Ном', 1))
                         sem.set('ТипОбъекта', dis1.get('ТипОбъекта', 1))
                         #print(sem.get('ТипОбъекта', 1))
@@ -955,7 +957,9 @@ class Hours():
                     self.semsh[semn]['Рук. маг'] += float(settings['TimeNormals']['mag'])/2 * int(self.stnumber)
                     self.semsh[semn]['Рук. маг'] = round(self.semsh[semn]['Рук. маг'], 2)
 
-                if node.tag == 'Семестр' or node.get('Семестр', '0') == 'Семестр':
+                if (node.tag == 'Семестр' or node.get('Семестр', '0') == 'Семестр') and not (
+                node.get('КодВидаРаботы', 'Err') == '52' or node.get('КодВидаРаботы', 'Err') == '53' or node.get(
+                            'КодВидаРаботы', 'Err') == '56' or node.get('КодВидаРаботы', 'Err') == '57'):
                     opt1 = float(node.get('НормативНаСтуд', 0))
                     opt2 = float(node.get('НормативНаСтудВНед', 0))
                     opt3 = float(node.get('НормативНаПодгр', 0))
@@ -971,25 +975,27 @@ class Hours():
                         node.set('Нед', key.get('Нед', 1))
                     #print(opt1, opt2, opt3, opt4, semn)
                     if not opt1 == 0:
-                        #print('Im here 1')
+                        print('Im here 1')
                         self.semsh[semn]['Практики и НИР'] += opt1 * int(self.stnumber)
-                        #print(node.get('Ном', 0), 'НормативНаСтуд: ', opt1, int(
-                        #          self.stnumber), float(node.get('Нед', 1)),
-                        #      opt1 * int(
-                        #          self.stnumber))
+                        print(node.get('Ном', 0), 'НормативНаСтуд: ', opt1, int(
+                                  self.stnumber), float(node.get('Нед', 1)),
+                              opt1 * int(
+                                  self.stnumber), node.get('КодПланыНовыеЧасы', 'Err'), "Код Вида работ:", node.get('КодВидаРаботы', 'Err'),
+                              node.get('Дис', 'Err'))
 
                         #opt1 * int(self.stnumber)
                     if not opt2 == 0:
-                        #print('Im here 2')
+                        print('Im here 2')
                         #print(int(node.get('Нед', 0)), ' ', opt2,' ', int(self.stnumber))
                         self.semsh[semn]['Практики и НИР'] += opt2 * int(self.stnumber) * float(node.get('Нед', 1))
-                        #print(node.get('Ном', 0), 'НормативНаСтудВНед: ', opt2, int(self.stnumber), float(node.get('Нед', 1)),
-                        #      opt2 * int(
-                        #          self.stnumber) * float(node.get('Нед', 1)))
+                        print(node.get('Ном', 0), 'НормативНаСтудВНед: ', opt2, int(self.stnumber), float(node.get('Нед', 1)),
+                              opt2 * int(
+                                  self.stnumber) * float(node.get('Нед', 1)), node.get('КодПланыНовыеЧасы', 'Err'),
+                              "Код Вида работ:", node.get('КодВидаРаботы', 'Err'), node.get('Дис', 'Err'))
 
                         #int(key.get('Нед', 0)) * opt2 * int(self.stnumber)
                     if not opt3 == 0:
-                        #print('Im here 3')
+                        print('Im here 3')
                         if not node.get('ПланЧасовАуд', '') == '':
                             if node.get('Наименование', '') in self.disaud:
                                 #print(self.disaud[node.get('Наименование', '')])
@@ -1003,23 +1009,27 @@ class Hours():
                                     self.disaud[node.get('Наименование', '')][semn]['Лаб'])
                                 self.disaud[node.get('Наименование', '')][semn]['Вычесть'] = True
                             self.semsh[semn]['Практики и НИР'] += float(node.get('ПланЧасовАуд', ''))
-                            #print(node.get('Ном', 0), 'НормативНаПодгр: ', float(node.get('ПланЧасовАуд', '')))
+                            print(node.get('Ном', 0), 'НормативНаПодгр: ', float(node.get('ПланЧасовАуд', '')),
+                                  node.get('КодПланыНовыеЧасы', 'Err'), "Код Вида работ:",
+                                  node.get('КодВидаРаботы', 'Err'), node.get('Дис', 'Err'))
                         else:
-                            #print(node.get('ЗЕТвНеделе', 0),int(self.groups),float(node.get('Нед', 1)))
+                            print(node.get('ЗЕТвНеделе', 0),int(self.groups),float(node.get('Нед', 1)))
                             self.semsh[semn]['Практики и НИР'] += opt3 * int(self.groups)
-                            #print(node.get('Ном', 0), 'НормативНаПодгр: ', opt3, int(
-                            #          self.groups),
-                            #      opt3 * int(
-                            #          self.groups))
+                            print(node.get('Ном', 0), 'НормативНаПодгр: ', opt3, int(
+                                      self.groups),
+                                  opt3 * int(
+                                      self.groups), node.get('КодПланыНовыеЧасы', 'Err'), "Код Вида работ:",
+                                  node.get('КодВидаРаботы', 'Err'), node.get('Дис', 'Err'))
 
                         #opt3 * int(self.groups)
                     if not opt4 == 0:
-                        #print('Im here 4', float(node.get('ПланЗЕТ', 0)))
+                        print('Im here 4', float(node.get('ПланЗЕТ', 0)))
                         self.semsh[semn]['Практики и НИР'] += opt4 * int(self.groups) * float(node.get('Нед', 1))
-                        #print(node.get('Ном', 0), 'НормативНаПодгрВНед: ', opt4, int(
-                        #          self.groups), float(node.get('Нед', 1)),
-                        #      opt4 * int(
-                        #          self.groups),float(node.get('Нед', 1)))
+                        print(node.get('Ном', 0), 'НормативНаПодгрВНед: ', opt4, int(
+                                  self.groups), float(node.get('Нед', 1)),
+                              opt4 * int(
+                                  self.groups) * float(node.get('Нед', 1)), node.get('КодПланыНовыеЧасы', 'Err'),
+                              "Код Вида работ:", node.get('КодВидаРаботы', 'Err'), node.get('Дис', 'Err'))
 
                         #int(key.get('Нед', 0)) * opt4 * int(self.groups)
 
